@@ -67,6 +67,7 @@ class GraphShell extends AppShell {
 		
 		$this->outputGraph($content);
 
+		return $relationsData;
 	}
 
 	/**
@@ -150,7 +151,7 @@ class GraphShell extends AppShell {
 	 * @param array $settings Settings
 	 * @return void
 	 */
-	private function buildGraph($modelsList, $relationsList, $settings) {
+	private function buildGraph($modelsList, $relationsList) {
 
 		$nodes = array();
 		

@@ -4,6 +4,7 @@
 //App::uses('ConsoleInput', 'Console');
 App::uses('ShellDispatcher', 'Console');
 App::uses('Shell', 'Console');
+App::uses('GraphShell', 'Console/Command');
 
 App::uses('Model', 'Model');
 App::uses('AppModel', 'Model');
@@ -21,14 +22,20 @@ class GraphShellTest extends CakeTestCase  {
 		$this->Article = ClassRegistry::init('Article');
 		$this->Tag = ClassRegistry::init('Tag');
 
+		$out = $this->getMock('ConsoleOutput', array(), array(), '', false);
+		$in = $this->getMock('ConsoleInput', array(), array(), '', false);
+
 		$this->Task = $this->getMock(
-			'GraphShell'
+			'Shell'
+//			array('in', 'out', 'hr', 'createFile', 'error', 'err', 'clear', 'dispatchShell'),
+//			array($out, $out, $in)
 		);
+		$this->GraphShell = new GraphShell();
 	}
 
 	public function testGetModels() {
 		
-		$models = $this->Task->getModels();
+		$models = $this->GraphShell->main();
 		print_r($models);
 		
 		$this->assertEquals(null, null);

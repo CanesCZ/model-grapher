@@ -1,6 +1,6 @@
 <?php
 class DATABASE_CONFIG {
-    public $default = array(
+    public $test = array(
         'datasource' => '',
     );
 }

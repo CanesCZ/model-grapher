@@ -1,9 +1,6 @@
 <?php
 /**
- * PHP 5
- *
- * @package app
- * @subpackage app.vendors.shells
+ * based on https://github.com/mamchenkov/CakePHP-GraphViz-Models
  */
 use \Fhaculty\Graph\Graph as Graph;
 use \Fhaculty\Graph\Exporter\Image as Image;
@@ -14,51 +11,21 @@ use \Fhaculty\Graph\Exporter\Image as Image;
 require_once 'Image/GraphViz.php';
 
 /**
- * CakePHP GraphViz Models
+ * CakePHP ModelGrapher
  *
  * This shell examines all models in the current application and its plugins,
  * finds all relations between them, and then generates a graphical representation
  * of those.  The graph is built using an excellent GraphViz tool.
  *
- * <b>Usage:</b>
- *
- * <code>
- * $ php -f cake/console/cake.php graph [filename] [format]
- * </code>
- *
- * <b>Parameters:</b>
- *
  * * filename - an optional full path to the output file. If omitted, graph.png in
  *              current folder will be used
  * * format - an optional output format, supported by GraphViz (png,svg,etc)
  *
- * @package app
- * @subpackage Utils
- * @author Leonid Mamchenkov <leonid@mamchenkov.net>
+ * @author Ondrej Henek <info@canes.cz>
  * @version 2.0 (Blue Octopus On Steroids)
  */
 class GraphShell extends AppShell {
 
-	/**
-	 * Graph settings
-	 *
-	 * Consult the GraphViz documentation for node, edge, and
-	 * graph attributes for more information.
-	 *
-	 * @link http://www.graphviz.org/doc/info/attrs.html
-	 */
-	public $graphSettings = array(
-			'label' => 'CakePHP Model Relationships',
-			'labelloc' => 't',
-			'fontname' => 'Helvetica',
-			'fontsize' => 12,
-			//
-			// Tweaking these might produce better results
-			//
-			'concentrate' => 'true',  // join multiple connecting lines between same nodes
-			'landscape' => 'false',   // rotate resulting graph by 90 degrees
-			'rankdir' => 'TB',        // interpret nodes from Top-to-Bottom or Left-to-Right (use: LR)
-		);
 
 	/**
 	 * Relations settings
@@ -75,30 +42,6 @@ class GraphShell extends AppShell {
 			'hasAndBelongsToMany' => array('label' => 'HABTM',     'dir' => 'both', 'color' => 'red',     'arrowhead' => 'crow', 'arrowtail' => 'crow', 'fontname' => 'Helvetica', 'fontsize' => 10, ),
 		);
 
-	/**
-	 * Miscelanous settings
-	 *
-	 * These are settings that change the behavior
-	 * of the application, but which I didn't feel
-	 * safe enough to send to GraphViz.
-	 */
-	public $miscSettings = array(
-			// If true, graphs will use only real model names (via className).  If false,
-			// graphs will use whatever you specified as the name of relationship class.
-			// This might get very confusing, so you mostly would want to keep this as true.
-			'realModels' => true, 
-
-			// If set to not empty value, the value will be used as a date() format, that
-			// will be appended to the main graph label. Set to empty string or null to avoid
-			// timestamping generated graphs.
-			'timestamp' => ' [Y-m-d H:i:s]',
-		);
-
-	/**
-	 * Change this to something else if you 
-	 * have a plugin with the same name.
-	 */
-	const GRAPH_LEGEND = 'Graph Legend';
 
 	/**
 	 * We'll use this to store the graph thingy
@@ -112,60 +55,18 @@ class GraphShell extends AppShell {
 	 */
 	public function main() {
 
-//		$graph = new Graph();
-
-		// create some cities
-//		$rome = $graph->createVertex('Rome');
-//		$madrid = $graph->createVertex('Madrid');
-//		$cologne = $graph->createVertex('Cologne');
-//
-//		// build some roads
-//		$cologne->createEdgeTo($madrid);
-//		$madrid->createEdgeTo($rome);
-//		// create loop
-//		$rome->createEdgeTo($rome);
-		
-//		foreach ($rome->getVerticesEdgeFrom() as $vertex) {
-//			echo $vertex->getId().' leads to rome'.PHP_EOL;
-//			// result: Madrid and Rome itself
-//		}
-//		exit;
-
-		// Prepare graph settings
-		$graphSettings = $this->graphSettings;
-		if (!empty($this->miscSettings['timestamp'])) {
-			$graphSettings['label'] .= date($this->miscSettings['timestamp']);
-		}
-
 		// Initialize the graph
 		$this->graph = new Graph();
 
 		$models = $this->getModels();
-		$relationsData = $this->getRelations($models, $this->relationsSettings);
-		$this->buildGraph($models, $relationsData, $this->relationsSettings);
+		$relationsData = $this->getRelations($models);
+		$this->buildGraph($models, $relationsData);
 
 		$image = new Image();
 		$content = $image->getOutput($this->graph);
 		
-		$filename = TMP.'graph_.png';
-		
-		if (file_exists($filename)) {
-//			file exists! that's bad and we should say somehting
-		}
+		$this->outputGraph($content);
 
-		if (!$handle = fopen($filename, 'w')) {
-			 echo "Cannot open file ($filename)";
-			 exit;
-		}
-
-		if (fwrite($handle, $content) === FALSE) {
-			echo "Cannot write to file ($filename)";
-			exit;
-		}
-
-		echo "Success, wrote to file ($filename)";
-
-		fclose($handle);
 	}
 
 	/**
@@ -203,10 +104,9 @@ class GraphShell extends AppShell {
 	 * Get the list of relationss for given models
 	 *
 	 * @param array $modelsList List of models by module (apps, plugins, etc)
-	 * @param array $relationsSettings Relationship settings
 	 * @return array
 	 */
-	private function getRelations($modelsList, $relationsSettings) {
+	private function getRelations($modelsList) {
 		$result = array();
 
 		foreach ($modelsList as $plugin => $models) {
@@ -217,7 +117,7 @@ class GraphShell extends AppShell {
 				// Rearrange your files or patch up $this->getModels()
 				$modelInstance = ClassRegistry::init($model);
 
-				foreach ($relationsSettings as $relation => $settings) {
+				foreach ($this->relationsSettings as $relation => $settings) {
 					if (!empty($modelInstance->$relation) && is_array($modelInstance->$relation)) {
 
 						if ($this->miscSettings['realModels']) {
@@ -257,11 +157,6 @@ class GraphShell extends AppShell {
 		// We'll collect apps and plugins in here
 		$plugins = array();
 
-		// Add special cluster for Legend
-//		$plugins[] = self::GRAPH_LEGEND;
-//		$this->buildGraphLegend($settings);
-
-
 		// Add nodes for all models
 		foreach ($modelsList as $plugin => $models) {
 			if (!in_array($plugin, $plugins)) {
@@ -284,8 +179,8 @@ class GraphShell extends AppShell {
 			foreach ($relations as $model => $relations) {
 				foreach ($relations as $relation => $relatedModels) {
 
-					$relationsSettings = $settings[$relation];
-					$relationsSettings['label'] = ''; // no need to pollute the graph with too many labels
+					$this->relationsSettings = $settings[$relation];
+					$this->relationsSettings['label'] = ''; // no need to pollute the graph with too many labels
 
 					foreach ($relatedModels as $relatedModel) {
 						if (!empty($nodes[$model]) && !empty($nodes[$relatedModel]))
@@ -301,30 +196,6 @@ class GraphShell extends AppShell {
 //		}
 	}
 
-	/**
-	 * Add graph legend
-	 *
-	 * For every type of the relationship in CakePHP we add two nodes (from, to)
-	 * to the graph and then link them, using the settings of each relationship
-	 * type.  Nodes are grouped into the Graph Legend cluster, so they don't
-	 * interfere with the rest of the nodes.
-	 *
-	 * @param array $relationsSettings Array with relation types and settings
-	 * @return void
-	 */
-	private function buildGraphLegend($relationsSettings) {
-
-		foreach ($relationsSettings as $relation => $relationSettings) {
-			$from = $relation . '_from';
-			$to = $relation . '_to';
-
-			$a = $this->graph->createVertex($from);
-
-			$b = $this->graph->createVertex($to);
-
-			$a->createEdgeTo($b);
-		}
-	}
 
 	/**
 	 * Save graph to a file
@@ -333,24 +204,25 @@ class GraphShell extends AppShell {
 	 * @param string $format Any of the GraphViz supported formats
 	 * @return numeric Number of bytes written to file
 	 */
-	private function outputGraph($fileName = null, $format = null) {
-		$result = 0;
-
-		// Fall back on PNG if no format was given
-		if (empty($format)) {
-			$format = 'png';
+	private function outputGraph($content, $filename = 'graph_.png') {
+		
+		if (file_exists($filename)) {
+//			file exists! that's bad and we should say somehting
 		}
 
-		// Fall back on something when nothing is given
-		if (empty($fileName)) {
-			$fileName = basename(__FILE__, '.php') . '.' . $format;
+		if (!$handle = fopen($filename, 'w')) {
+			 echo "Cannot open file ($filename)";
+			 exit;
 		}
 
-		$imageData = $this->graph->fetch($format);
-		$result = file_put_contents($fileName, $imageData);
+		if (fwrite($handle, $content) === false) {
+			echo "Cannot write to file ($filename)";
+			exit;
+		}
 
-		return $result;
+		echo "Success, wrote to file ($filename)";
+
+		fclose($handle);
 	}
 
-}	
-?>
+}

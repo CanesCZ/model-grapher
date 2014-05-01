@@ -10,3 +10,8 @@ Usage
 ------------------------------
 
 ...coming soon...
+
+
+Testing
+-------------------------------
+cake test app Console/Command/GraphShell

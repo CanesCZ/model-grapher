@@ -1,6 +1,6 @@
 <?php
-class DATABASE_CONFIG {
-    public $test = array(
-        'datasource' => '',
-    );
-}
+//class DATABASE_CONFIG {
+//    public $test = array(
+//        'datasource' => '',
+//    );
+//}
